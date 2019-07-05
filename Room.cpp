@@ -26,11 +26,11 @@ Room::Room(const int _bgCnt, const int _tileCnt, string bgRootPath, string tileR
 	}
 	//精灵绑定纹理
 	for (int i = 0; i <= bgCnt; i++) {
-		env[i].setTexture(*texBg[i]);
+		bg[i].setTexture(*texBg[i]);
 	}
 	//env[bgCnt].setTexture(*texBg[bgCnt]);已经包括在上述循环
 	for (int i = 0; i < tileCnt; i++) {
-		env[i + 20].setTexture(*texTile[i]);
+		tile[i].setTexture(*texTile[i]);
 	}
 }
 
@@ -40,15 +40,15 @@ void Room::generate() {
 	hasGenerated = true;
 
 	srand((unsigned int)time(NULL));
-	int lastIndex=-1;
-	for (float renderWidth = 0; renderWidth<1600;) {
+	int lastIndex = -1;
+	for (float renderWidth = 0; renderWidth < 1700;) {
 		int a = rand() % 100;
 		int index;
 		if (a <= commenFactor) {
 			index = COMMEN_BG;
 		}
 		else {
-			index = (a - commenFactor) % (bgCnt-1);
+			index = (a - commenFactor) % (bgCnt - 1);
 		}
 		//判断重复单元
 		if (index == COMMEN_BG && (lastIndex == COMMEN_BG || lastIndex == COMMEN_BG + 1)) {
@@ -56,17 +56,17 @@ void Room::generate() {
 		}
 		lastIndex = index;
 		bgIndexList1.push_back(index);
-		renderWidth += env[index].getGlobalBounds().width;
+		renderWidth += bg[index].getGlobalBounds().width;
 	}
 	lastIndex = -1;
-	for (float renderWidth = 0; renderWidth < 1600;) {
+	for (float renderWidth = 0; renderWidth < 1700;) {
 		int a = rand() % 100;
 		int index;
 		if (a <= commenFactor) {
 			index = COMMEN_BG;
 		}
 		else {
-			index = (a - commenFactor) % (bgCnt-1);
+			index = (a - commenFactor) % (bgCnt - 1);
 		}
 		//判断重复单元
 		if (index == COMMEN_BG && (lastIndex == COMMEN_BG || lastIndex == COMMEN_BG + 1)) {
@@ -74,57 +74,82 @@ void Room::generate() {
 		}
 		lastIndex = index;
 		bgIndexList2.push_back(index);
-		renderWidth += env[index].getGlobalBounds().width;
+		renderWidth += bg[index].getGlobalBounds().width;
 	}
 	lastIndex = -1;
-	//生成地面瓷砖
-	for (float renderWidth = 0; renderWidth < 1600;) {
-		int a = rand() % 5;
-		int rep = rand() % 5;//重复次数
-		int index = a;
+	//生成地面瓷砖/楼梯
+	for (float renderWidth = 0; renderWidth < 4000;) {
+		int a = rand() % tileCnt;
+		while (a == 6 && lastIndex != 5) {
+			a = rand() % tileCnt;
+		}
+		int rep = rand() % 3 + 1;//重复次数
+		cout << "种类 " << a << " 重复次数 " << rep << endl;
+		int index =  a;
 		lastIndex = index;
 		for (int j = 0; j < rep; j++) {
 			tileIndexList.push_back(index);
-			renderWidth += env[20 + index].getGlobalBounds().width;
+			tile[index].setScale(scaleFactorTile, scaleFactorTile);
+			renderWidth += tile[index].getGlobalBounds().width;
 		}
-		
-		
-		
-
 	}
+
+	//绘制地面/楼梯瓷砖
+	
 }
 
 
 
-void Room::draw(RenderWindow & win,const float levelHeight)
+
+
+void Room::drawBg(RenderWindow & win)
 {
+	//const float levelHeight = 250;
 	float scaleFactorTile = 2.2;
-	float scaleFactorBg = 2.5;//瓷砖和背景的放大因子
+	float scaleFactorBg = 2.5;//背景的放大因子
 	//绘制房间背景的两层序列
 	float renderWidth = 0;
 	for (vector<int>::iterator it = bgIndexList1.begin(); it != bgIndexList1.end(); it++) {
-		const float thisHeight = env[*it].getGlobalBounds().height;
-		env[*it].setPosition(static_cast<float>(renderWidth), 200 + levelHeight - thisHeight);
-		env[*it].setScale(scaleFactorBg, scaleFactorBg);
-		win.draw(env[*it]);
-		renderWidth += env[*it].getGlobalBounds().width;
+		const float thisHeight = bg[*it].getGlobalBounds().height;
+		bg[*it].setPosition(renderWidth, 450 - thisHeight);
+		bg[*it].setScale(scaleFactorBg, scaleFactorBg);
+		win.draw(bg[*it]);
+		renderWidth += bg[*it].getGlobalBounds().width;
 	}
 	renderWidth = 0;
 	for (vector<int>::iterator it = bgIndexList2.begin(); it != bgIndexList2.end(); it++) {
-		const float thisHeight = env[*it].getGlobalBounds().height;
-		env[*it].setPosition(static_cast<float>(renderWidth), 500 + levelHeight - thisHeight);
-		env[*it].setScale(scaleFactorBg, scaleFactorBg);
-		win.draw(env[*it]);
-		renderWidth += env[*it].getGlobalBounds().width;
+		const float thisHeight = bg[*it].getGlobalBounds().height;
+		bg[*it].setPosition(renderWidth, 750 - thisHeight);
+		bg[*it].setScale(scaleFactorBg, scaleFactorBg);
+		win.draw(bg[*it]);
+		renderWidth += bg[*it].getGlobalBounds().width;
 	}
-	//绘制地面瓷砖
-	renderWidth = 0;
+	
+}
+void Room::drawTile(RenderWindow & win)
+{	//每次都重新部署的原因是同一块tile可能被渲染到不同的地方
+	float renderWidth = 0;
+	int offset = 0;//针对每种瓷砖的不同优化
 	for (vector<int>::iterator it = tileIndexList.begin(); it != tileIndexList.end(); it++) {
-		const float thisHeight = env[*it].getGlobalBounds().height;
-		env[*it+20].setPosition(static_cast<float>(renderWidth), 500 + levelHeight - thisHeight);
-		env[*it + 20].setScale(scaleFactorTile, scaleFactorTile);
-		win.draw(env[*it + 20]);
-		renderWidth += env[*it + 20].getGlobalBounds().width;
+		const float thisHeight = tile[*it].getGlobalBounds().height;
+		switch (*it) {
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+			offset = 710;
+			break;
+		case 4:
+			offset = 710;
+			break;
+		case 5:
+		case 6:
+			offset = 695;
+			break;
+		}
+		tile[*it].setPosition(renderWidth, offset - thisHeight);
+		renderWidth += tile[*it].getGlobalBounds().width;
+		win.draw(tile[*it]);
 	}
 }
 bool isIn(Vector2f pos, FloatRect tileRect)
@@ -136,30 +161,65 @@ bool isIn(Vector2f pos, FloatRect tileRect)
 bool Room::isTile(Vector2f pos)
 //判断是否是瓷砖
 {
-	for (int i = 0; i < tileIndexList.size(); i++) {
-		if (isIn(pos, env[i + 20].getGlobalBounds()))
-		{
+	float offset;
+	float renderWidth = 0;
+	for (vector<int>::iterator it = tileIndexList.begin(); it != tileIndexList.end(); it++) {
+		const float thisHeight = tile[*it].getGlobalBounds().height;
+		switch (*it) {
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+			offset = 710;
+			break;
+		case 4:
+			offset = 710;
+			break;
+		case 5:
+		case 6:
+			offset = 695;
+			break;
+		}
+		tile[*it].setPosition(renderWidth, offset - thisHeight);
+		renderWidth += tile[*it].getGlobalBounds().width;
+		if (isIn(pos, tile[*it].getGlobalBounds())) {
 			return true;
 		}
 	}
 	return false;
 }
 
-
-
-
-
 float Room::standPlace(FloatRect person)
 {
-	float ans = 999;//最终返回999代表没有地方可以踩
+	float offset;
+	float renderWidth = 0;
+	float ans = -1;//最终返回-1代表没有地方可以踩
 	float judgeX = person.left + person.width*0.5;//判定点为人物中心点
-	for (int i = 0; i < tileIndexList.size(); i++) {
-		FloatRect thisBound = env[i + 20].getGlobalBounds();
+	for (vector<int>::iterator it = tileIndexList.begin(); it != tileIndexList.end(); it++) {
+		const float thisHeight = tile[*it].getGlobalBounds().height;
+		switch (*it) {
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+			offset = 710;
+			break;
+		case 4:
+			offset = 710;
+			break;
+		case 5:
+		case 6:
+			offset = 695;
+			break;
+		}
+		tile[*it].setPosition(renderWidth, offset - thisHeight);
+		renderWidth += tile[*it].getGlobalBounds().width;
+		FloatRect thisBound = tile[*it].getGlobalBounds();
 		if (thisBound.left<judgeX&&thisBound.left + thisBound.width>judgeX) {
 			ans = ans < thisBound.top ? ans : thisBound.top;
 		}
 	}
-	return 0.0f;
+	return ans;
 }
 
 Room::~Room()
